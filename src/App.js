@@ -5,7 +5,7 @@ export default function InfiniteLoopComponent() {
 
     useEffect(() => {
         setCount((prevCount) => prevCount + 1);
-    }); // Falta un array de dependencias, causando el bucle infinito
+    });
 
     // test
     return (

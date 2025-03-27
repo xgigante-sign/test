@@ -1,5 +1,6 @@
 const { message, warn, fail } = require('danger');
 const OpenAI = require('openai');
+const fs = require('fs');
 
 // Crea una instancia de OpenAI usando la API key
 const openai = new OpenAI({
