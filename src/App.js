@@ -7,6 +7,7 @@ export default function InfiniteLoopComponent() {
         setCount((prevCount) => prevCount + 1);
     }); // Falta un array de dependencias, causando el bucle infinito
 
+    // test
     return (
         <div className="p-4 text-center">
             <h1 className="text-xl font-bold">Bucle Infinito</h1>
