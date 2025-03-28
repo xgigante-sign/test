@@ -15,50 +15,34 @@ modifiedJSFiles.forEach(async (file) => {
         lines.forEach((line, index) => {
             // Error: Uso de console.log
             if (line.includes('console.log')) {
-                commentOnLine(file, index + 1, `⚠️ Se encontró un \`console.log\` en ${file} línea ${index + 1}. Considera eliminarlo.`);
+                message(`⚠️ Se encontró un \`console.log\` en ${file} línea ${index + 1}. Considera eliminarlo.`, file, index + 1);
             }
 
             // Error: Bucle infinito (while (true) o for (;;))
             if (line.includes('while (true)') || line.includes('for (;;);')) {
-                commentOnLine(file, index + 1, `❌ Posible bucle infinito en ${file} línea ${index + 1}. Revisa la lógica.`);
+                message(`❌ Posible bucle infinito en ${file} línea ${index + 1}. Revisa la lógica.`, file, index + 1);
             }
 
             // Error: Uso de : any en TypeScript
             if (line.includes(': any')) {
-                commentOnLine(
+                message(
+                    `⚠️ Se encontró uso de \`any\` en ${file} línea ${index + 1}. Considera usar un tipo más específico.`,
                     file,
-                    index + 1,
-                    `⚠️ Se encontró uso de \`any\` en ${file} línea ${index + 1}. Considera usar un tipo más específico.`
+                    index + 1
                 );
             }
 
             // Error: Función recursiva sin condición de salida
             if (/function\s+[a-zA-Z0-9_]+\s*\(.*\)\s*{[\s\S]*\1\(/.test(line)) {
-                commentOnLine(
+                message(
+                    `⚠️ Se detectó una función recursiva en ${file} línea ${index + 1}. Verifica que tenga una condición de salida.`,
                     file,
-                    index + 1,
-                    `⚠️ Se detectó una función recursiva en ${file} línea ${index + 1}. Verifica que tenga una condición de salida.`
+                    index + 1
                 );
             }
         });
     }
 });
-
-// Función auxiliar para comentar en una línea específica del archivo
-async function commentOnLine(file, lineNumber, messageText) {
-    const fileContent = await danger.github.utils.fileContents(file);
-    const lines = fileContent.split('\n');
-    const lineContent = lines[lineNumber - 1];
-    if (lineContent) {
-        const comment = {
-            path: file,
-            position: lineNumber,
-            body: `${messageText}\n\n\`\`\`javascript\n${lineContent}\n\`\`\``,
-        };
-        danger.github.comment(comment);
-    }
-}
-
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
