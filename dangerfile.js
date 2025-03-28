@@ -1,7 +1,7 @@
 const { message, warn, fail, message } = require('danger');
 const OpenAI = require('openai');
 const fs = require('fs');
-const execSync = require('child_process');
+const { spawnSync } = require('child_process');
 
 // Obtener archivos JS/TS modificados, excluyendo dangerfile.js
 const modifiedJSFiles = danger.git.modified_files.filter(
@@ -43,12 +43,17 @@ async function analyzeCodePatterns(file) {
     }
 }
 
-// Ejecutar ESLint en archivos modificados
-async function runESLint(file) {
-    try {
-        const result = execSync(`npx eslint ${file} --format=json`).toString();
-        const lintResults = JSON.parse(result);
+// Verificar si hay archivos modificados
+function runESLint(file) {
+    const result = spawnSync('npx', ['eslint', file, '--format=json'], { encoding: 'utf-8' });
 
+    if (result.error) {
+        console.error(`⚠️ No se pudo ejecutar ESLint en ${file}:`, result.error.message);
+        return;
+    }
+
+    try {
+        const lintResults = JSON.parse(result.stdout);
         lintResults.forEach(({ messages }) => {
             messages.forEach(({ line, message: errorMsg, severity }) => {
                 const formattedMessage = `🔍 **ESLint (${severity === 2 ? 'Error' : 'Warning'})**: ${errorMsg}`;
@@ -56,19 +61,21 @@ async function runESLint(file) {
             });
         });
     } catch (error) {
-        console.log(`No se pudo ejecutar ESLint en ${file}:`, error.message);
+        console.error(`❌ Error al parsear el resultado de ESLint en ${file}:`, error.message);
     }
 }
 
-// Analizar cada archivo modificado
+// Ejecutar las verificaciones en cada archivo modificado
 modifiedJSFiles.forEach(async (file) => {
     await analyzeCodePatterns(file);
-    await runESLint(file);
+    runESLint(file);
 });
 
 if (modifiedJSFiles.length === 0) {
     message('✅ No se detectaron archivos JavaScript o TypeScript modificados.');
 }
+
+// Configuración de OpenAI
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
