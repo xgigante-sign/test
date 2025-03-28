@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 const App = () => {
+  
   const [count, setCount] = useState(0);
 
   // Error 1: Uso de console.log en el código
