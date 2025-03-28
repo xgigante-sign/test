@@ -5,7 +5,7 @@ const fs = require('fs');
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
-fall(
+fail(
     `❌ No se pudo cargar la API Key de OpenAI. Asegúrate de que esté configurada en las variables de entorno. ${process.env.OPENAI_API_KEY}`
 );
 
