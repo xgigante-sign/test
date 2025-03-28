@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 
 export default function InfiniteLoopComponent() {
     const [count, setCount] = useState(0);
-    let t: any;
 
     console.log('test1');
 
@@ -19,4 +18,6 @@ export default function InfiniteLoopComponent() {
             <p>Contador: {count}</p>
         </div>
     );
-}
+    
+    setTimeout(() => {
+  }
