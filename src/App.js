@@ -20,5 +20,5 @@ export default function InfiniteLoopComponent() {
         </div>
     );
     
-    // setTimeout(() => {
+    setTimeout(() => {
   }
