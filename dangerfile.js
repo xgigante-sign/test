@@ -21,6 +21,7 @@ async function analyzePRWithChatGPT() {
 
         message(`🤖 ChatGPT sugiere: ${response.choices[0].message.content}`);
     } catch (error) {
+        console.error('Error en la API de OpenAI:', error);
         fail('❌ No se pudo obtener una respuesta de ChatGPT.');
     }
 }
