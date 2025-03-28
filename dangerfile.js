@@ -2,9 +2,9 @@ const { message, warn, fail, message } = require('danger');
 const OpenAI = require('openai');
 const fs = require('fs');
 
-// Analizar archivos modificados
+// Analizar archivos modificados, excluyendo el propio dangerfile.js
 const modifiedJSFiles = danger.git.modified_files.filter(
-    (file) => file.endsWith('.js') || file.endsWith('.jsx') || file.endsWith('.ts') || file.endsWith('.tsx')
+    (file) => (file.endsWith('.js') || file.endsWith('.jsx') || file.endsWith('.ts') || file.endsWith('.tsx')) && file !== 'dangerfile.js'
 );
 
 // Revisar errores en los archivos
@@ -15,9 +15,9 @@ modifiedJSFiles.forEach(async (file) => {
         lines.forEach((line, index) => {
             if (line.includes('console.log') || line.includes('while (true)') || line.includes(': any')) {
                 fail(`❌ Error detectado en ${file} línea ${index + 1}:
-          \`\`\`js
-          ${line.trim()}
-          \`\`\``);
+        \`\`\`js
+        ${line.trim()}
+        \`\`\``);
             }
         });
     }
