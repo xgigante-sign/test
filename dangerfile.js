@@ -1,7 +1,7 @@
 const { message, warn, fail, message } = require('danger');
 const OpenAI = require('openai');
 const fs = require('fs');
-import { execSync } from 'child_process';
+const execSync = require('child_process');
 
 // Obtener archivos JS/TS modificados, excluyendo dangerfile.js
 const modifiedJSFiles = danger.git.modified_files.filter(
