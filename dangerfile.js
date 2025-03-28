@@ -15,42 +15,43 @@ modifiedJSFiles.forEach(async (file) => {
         lines.forEach((line, index) => {
             // Error: Uso de console.log
             if (line.includes('console.log')) {
-                danger.github.utils.fileLineComment(
-                    `⚠️ Se encontró un \`console.log\` en ${file} línea ${index + 1}. Considera eliminarlo.`,
-                    file,
-                    index + 1
-                );
+                danger.github.comment({
+                    body: `⚠️ Se encontró un \`console.log\` en ${file} línea ${index + 1}. Considera eliminarlo.`,
+                    path: file,
+                    position: index + 1,
+                });
             }
 
             // Error: Bucle infinito (while (true) o for (;;))
             if (line.includes('while (true)') || line.includes('for (;;);')) {
-                danger.github.utils.fileLineComment(
-                    `❌ Posible bucle infinito en ${file} línea ${index + 1}. Revisa la lógica.`,
-                    file,
-                    index + 1
-                );
+                danger.github.comment({
+                    body: `❌ Posible bucle infinito en ${file} línea ${index + 1}. Revisa la lógica.`,
+                    path: file,
+                    position: index + 1,
+                });
             }
 
             // Error: Uso de : any en TypeScript
             if (line.includes(': any')) {
-                danger.github.utils.fileLineComment(
-                    `⚠️ Se encontró uso de \`any\` en ${file} línea ${index + 1}. Considera usar un tipo más específico.`,
-                    file,
-                    index + 1
-                );
+                danger.github.comment({
+                    body: `⚠️ Se encontró uso de \`any\` en ${file} línea ${index + 1}. Considera usar un tipo más específico.`,
+                    path: file,
+                    position: index + 1,
+                });
             }
 
             // Error: Función recursiva sin condición de salida
             if (/function\s+[a-zA-Z0-9_]+\s*\(.*\)\s*{[\s\S]*\1\(/.test(line)) {
-                danger.github.utils.fileLineComment(
-                    `⚠️ Se detectó una función recursiva en ${file} línea ${index + 1}. Verifica que tenga una condición de salida.`,
-                    file,
-                    index + 1
-                );
+                danger.github.comment({
+                    body: `⚠️ Se detectó una función recursiva en ${file} línea ${index + 1}. Verifica que tenga una condición de salida.`,
+                    path: file,
+                    position: index + 1,
+                });
             }
         });
     }
 });
+
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
