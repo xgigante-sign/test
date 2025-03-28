@@ -19,4 +19,6 @@ export default function InfiniteLoopComponent() {
             <p>Contador: {count}</p>
         </div>
     );
-}
+
+    r
+  }
