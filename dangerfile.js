@@ -1,48 +1,74 @@
 const { message, warn, fail, message } = require('danger');
 const OpenAI = require('openai');
 const fs = require('fs');
+import { execSync } from 'child_process';
 
-// Analizar archivos modificados, excluyendo el propio dangerfile.js
+// Obtener archivos JS/TS modificados, excluyendo dangerfile.js
 const modifiedJSFiles = danger.git.modified_files.filter(
     (file) => (file.endsWith('.js') || file.endsWith('.jsx') || file.endsWith('.ts') || file.endsWith('.tsx')) && file !== 'dangerfile.js'
 );
 
-// Revisar errores en los archivos
-modifiedJSFiles.forEach(async (file) => {
+async function analyzeCodePatterns(file) {
     const fileContent = await danger.git.diffForFile(file);
     if (fileContent && fileContent.added) {
         const lines = fileContent.added.split('\n');
+
         lines.forEach((line, index) => {
+            const lineNumber = index + 1;
+
             // Error: Uso de console.log
             if (line.includes('console.log')) {
-                message(`⚠️ Se encontró un \`console.log\` en ${file} línea ${index + 1}. Considera eliminarlo.`, file, index + 1);
+                warn(`⚠️ Se encontró un \`console.log\` en **${file}** línea **${lineNumber}**. Considera eliminarlo.`, file, lineNumber);
             }
 
-            // Error: Bucle infinito (while (true) o for (;;))
+            // Error: Bucle infinito
             if (line.includes('while (true)') || line.includes('for (;;);')) {
-                message(`❌ Posible bucle infinito en ${file} línea ${index + 1}. Revisa la lógica.`, file, index + 1);
+                fail(`❌ Posible bucle infinito en **${file}** línea **${lineNumber}**. Revisa la lógica.`, file, lineNumber);
             }
 
             // Error: Uso de : any en TypeScript
             if (line.includes(': any')) {
-                message(
-                    `⚠️ Se encontró uso de \`any\` en ${file} línea ${index + 1}. Considera usar un tipo más específico.`,
-                    file,
-                    index + 1
-                );
+                warn(`⚠️ Uso de \`any\` en **${file}** línea **${lineNumber}**. Considera un tipo más específico.`, file, lineNumber);
             }
 
             // Error: Función recursiva sin condición de salida
-            if (/function\s+[a-zA-Z0-9_]+\s*\(.*\)\s*{[\s\S]*\1\(/.test(line)) {
-                message(
-                    `⚠️ Se detectó una función recursiva en ${file} línea ${index + 1}. Verifica que tenga una condición de salida.`,
+            if (/function\s+([a-zA-Z0-9_]+)\s*\(.*\)\s*{[\s\S]*\1\(/.test(line)) {
+                fail(
+                    `⚠️ Posible recursión infinita en **${file}** línea **${lineNumber}**. Asegura una condición de salida.`,
                     file,
-                    index + 1
+                    lineNumber
                 );
             }
         });
     }
+}
+
+// Ejecutar ESLint en archivos modificados
+async function runESLint(file) {
+    try {
+        const result = execSync(`npx eslint ${file} --format=json`).toString();
+        const lintResults = JSON.parse(result);
+
+        lintResults.forEach(({ messages }) => {
+            messages.forEach(({ line, message: errorMsg, severity }) => {
+                const formattedMessage = `🔍 **ESLint (${severity === 2 ? 'Error' : 'Warning'})**: ${errorMsg}`;
+                severity === 2 ? fail(formattedMessage, file, line) : warn(formattedMessage, file, line);
+            });
+        });
+    } catch (error) {
+        console.log(`No se pudo ejecutar ESLint en ${file}:`, error.message);
+    }
+}
+
+// Analizar cada archivo modificado
+modifiedJSFiles.forEach(async (file) => {
+    await analyzeCodePatterns(file);
+    await runESLint(file);
 });
+
+if (modifiedJSFiles.length === 0) {
+    message('✅ No se detectaron archivos JavaScript o TypeScript modificados.');
+}
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
