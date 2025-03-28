@@ -2,39 +2,8 @@ const { message, warn, fail } = require('danger');
 const OpenAI = require('openai');
 const fs = require('fs');
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
-
-async function analyzePRWithChatGPT() {
-    const prDescription = danger.github.pr.body || 'Sin descripción';
-
-    // Configura el prompt que se enviará a ChatGPT
-    const prompt = `Analiza esta Pull Request y proporciona sugerencias de mejora:\n\n${prDescription}`;
-
-    try {
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4',
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.7,
-        });
-
-        message(`🤖 ChatGPT sugiere: ${response.choices[0].message.content}`);
-    } catch (error) {
-        fail('❌ No se pudo obtener una respuesta de ChatGPT.');
-    }
-}
-
-analyzePRWithChatGPT();
-
-// Reglas adicionales de Danger
-const filesChanged = danger.git.modified_files.concat(danger.git.created_files);
-
-// 1. Verificar si la PR tiene pruebas
-const testFiles = filesChanged.filter((file) => file.includes('__tests__') || file.endsWith('.test.js'));
-if (testFiles.length === 0) {
-    warn('⚠️ No se han encontrado archivos de prueba. Considera agregar pruebas para este cambio.');
-}
+// dangerfile.js
+import { danger, warn, fail, message } from 'danger';
 
 // 1. Verificar tamaño del PR
 const bigPRThreshold = 500;
@@ -67,8 +36,13 @@ const modifiedJSFiles = danger.git.modified_files.filter(
 );
 modifiedJSFiles.forEach(async (file) => {
     const fileContent = await danger.git.diffForFile(file);
-    if (fileContent && fileContent.added && fileContent.added.includes('console.log')) {
-        warn(`⚠️ Se encontró un \`console.log\` en ${file}. Considera eliminarlo antes de hacer merge.`);
+    if (fileContent && fileContent.added) {
+        const lines = fileContent.added.split('\n');
+        lines.forEach((line, index) => {
+            if (line.includes('console.log')) {
+                warn(`⚠️ Se encontró un \`console.log\` en ${file} línea ${index + 1}. Considera eliminarlo.`);
+            }
+        });
     }
 });
 
@@ -90,8 +64,13 @@ if (hasComponentChanges && !hasDocsChanges) {
 // 8. Detectar uso de `any` en TypeScript
 modifiedJSFiles.forEach(async (file) => {
     const fileContent = await danger.git.diffForFile(file);
-    if (fileContent && fileContent.added && fileContent.added.includes(': any')) {
-        warn(`⚠️ Se encontró uso de \`any\` en ${file}. Considera usar un tipo más específico.`);
+    if (fileContent && fileContent.added) {
+        const lines = fileContent.added.split('\n');
+        lines.forEach((line, index) => {
+            if (line.includes(': any')) {
+                warn(`⚠️ Se encontró uso de \`any\` en ${file} línea ${index + 1}. Considera usar un tipo más específico.`);
+            }
+        });
     }
 });
 
@@ -102,3 +81,48 @@ message('✅ Recuerda ejecutar `eslint` y `prettier` antes de hacer merge.');
 if (!danger.github.requested_reviewers.users.length) {
     warn('⚠️ Este PR no tiene revisores asignados. Recuerda agregar al menos uno.');
 }
+
+// 11. Detectar posibles bucles infinitos
+modifiedJSFiles.forEach(async (file) => {
+    const fileContent = await danger.git.diffForFile(file);
+    if (fileContent && fileContent.added) {
+        const lines = fileContent.added.split('\n');
+        lines.forEach((line, index) => {
+            if (line.includes('while (true)') || line.includes('for (;;);')) {
+                fail(`❌ Posible bucle infinito en ${file} línea ${index + 1}. Revisa la lógica.`);
+            }
+            if (line.includes('setInterval(') && !fileContent.added.includes('clearInterval(')) {
+                warn(`⚠️ Se encontró \`setInterval\` en ${file} línea ${index + 1} sin \`clearInterval\`. Asegúrate de limpiarlo.`);
+            }
+            if (/function\s+[a-zA-Z0-9_]+\s*\(.*\)\s*{[\s\S]*\1\(/.test(line)) {
+                warn(`⚠️ Se detectó una función recursiva en ${file} línea ${index + 1}. Verifica que tenga una condición de salida.`);
+            }
+        });
+    }
+});
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
+
+async function analyzePRWithChatGPT() {
+    const prDescription = danger.github.pr.body || 'Sin descripción';
+
+    // Configura el prompt que se enviará a ChatGPT
+    const prompt = `Analiza esta Pull Request y proporciona sugerencias de mejora:\n\n${prDescription}`;
+
+    try {
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.7,
+        });
+
+        message(`🤖 ChatGPT sugiere: ${response.choices[0].message.content}`);
+    } catch (error) {
+        console.error('Error en la API de OpenAI:', error);
+        fail('❌ No se pudo obtener una respuesta de ChatGPT.');
+    }
+}
+
+analyzePRWithChatGPT();
